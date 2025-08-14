@@ -119,10 +119,10 @@ router.get("/search/:value", async (req, res) => {
     const { value } = req.params;
 
     try {
-        let filter = {};
+        let filter = { role: "player" }; // ✅ Always include only players
 
         if (!isNaN(value)) {
-            // If the value is a number → search by userNumber
+            // If value is a number → search by userNumber
             filter.userNumber = parseInt(value);
         } else {
             // Otherwise → search by name (case-insensitive)
