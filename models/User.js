@@ -74,11 +74,11 @@ const userSchema = new mongoose.Schema({
         default: function () {
             if (this.role === "player") {
                 return [
-                    { gameName: "Game1", points: 0 },
-                    { gameName: "Game2", points: 0 },
-                    { gameName: "Game3", points: 0 },
-                    { gameName: "Game4", points: 0 },
-                    { gameName: "Game5", points: 0 }
+                    { gameName: "Game1", points: null },
+                    { gameName: "Game2", points: null },
+                    { gameName: "Game3", points: null },
+                    { gameName: "Game4", points: null },
+                    { gameName: "Game5", points: null }
                 ];
             }
             return [];
