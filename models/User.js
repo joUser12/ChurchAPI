@@ -47,7 +47,7 @@
 
 
 const mongoose = require("mongoose");
-
+const bcrypt = require("bcrypt");
 // Counter Schema
 const counterSchema = new mongoose.Schema({
     _id: { type: String, required: true }, // sequence name
@@ -58,10 +58,12 @@ const Counter = mongoose.model("Counter", counterSchema);
 const userSchema = new mongoose.Schema({
     userNumber: { type: Number, unique: true },
     name: { type: String, required: true },
-    age: Number,
+    place: { type: String, }, // new field
+    password: { type: String, }, // new field
+    gameType: { type: String, },
     role: {
         type: String,
-        enum: ["admin", "player", "organizer"],
+        enum: ["admin", "player", "organizer",'reception'],
         default: "player"
     },
     games: {
@@ -102,5 +104,22 @@ userSchema.pre("save", async function (next) {
     }
     next();
 });
+
+userSchema.pre("save", async function (next) {
+    if (this.isModified("password")) {
+        try {
+            const salt = await bcrypt.genSalt(10);
+            this.password = await bcrypt.hash(this.password, salt);
+        } catch (err) {
+            return next(err);
+        }
+    }
+    next();
+});
+
+userSchema.methods.comparePassword = async function (candidatePassword) {
+    return await bcrypt.compare(candidatePassword, this.password);
+};
+
 
 module.exports = mongoose.model("User", userSchema);

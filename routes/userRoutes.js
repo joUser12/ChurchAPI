@@ -1,46 +1,27 @@
 const express = require("express");
 const router = express.Router();
 const User = require("../models/User");
-
-// CREATE
-// CREATE user
-// router.post("/", async (req, res) => {
-//     try {
-//         const { name, age, role, } = req.body;
-
-//         // Check if name already exists
-//         const existingUser = await User.findOne({ name, age });
-//         if (existingUser) {
-//             return res.status(400).json({ error: "User with this name and age already exists" });
-//         }
-
-//         // Create new user
-//         const user = new User({ name, age, role });
-//         await user.save();
-
-//           res.status(201).json({
-//             message: "User created successfully",
-//             userNumber: user.userNumber, // send userNumber directly
-//             user: user // optional: send full user object
-//         });
-//     } catch (err) {
-//         res.status(500).json({ error: err.message });
-//     }
-// });
-
+const bcrypt = require("bcrypt");
 
 router.post("/", async (req, res) => {
     try {
-        const { name, age, role, gameType } = req.body;
+        const { name, place, password, role, gameType } = req.body;
 
         // Check if name already exists for given age
-        const existingUser = await User.findOne({ name, age });
+        const existingUser = await User.findOne({ name });
         if (existingUser) {
             return res.status(400).json({ error: "User with this name and age already exists" });
         }
 
         // Build new user data
-        const newUserData = { name, age, role };
+        const newUserData = { name, place, role };
+
+        if (role !== "player") {
+            if (!password) {
+                return res.status(400).json({ error: "Password is required for " + role });
+            }
+            newUserData.password = password;
+        }
 
         // If role is organizer, add gameType field
         if (role === "organizer") {
@@ -52,6 +33,7 @@ router.post("/", async (req, res) => {
 
         // Create new user
         const user = new User(newUserData);
+        console.log(user)
         await user.save();
 
         res.status(201).json({
@@ -61,6 +43,51 @@ router.post("/", async (req, res) => {
         });
     } catch (err) {
         res.status(500).json({ error: err.message });
+    }
+});
+
+
+// login
+
+router.post("/login", async (req, res) => {
+    try {
+        const { name, password } = req.body;
+
+        // 1. Check user exists
+        const user = await User.findOne({ name });
+        if (!user) {
+            return res.status(400).json({ error: "User not found" });
+        }
+
+        // 2. Skip password check for players (since they don’t have one)
+        if (user.role !== "player") {
+            const isMatch = await bcrypt.compare(password, user.password);
+            if (!isMatch) {
+                return res.status(400).json({ error: "Invalid password" });
+            }
+        }
+        console.log(user);
+        // 3. Prepare response object
+        const responseUser = {
+            userNumber: user.userNumber,
+            name: user.name,
+            place: user.place,
+            role: user.role,
+        };
+
+        // 👉 Only organizers should see gameType
+        if (user.role === "organizer") {
+            responseUser.gameType = user.gameType;
+        }
+
+        // 4. Success
+        res.json({
+            message: "Login successful",
+            user: responseUser
+        });
+
+    } catch (err) {
+        res.status(500).json({ error: "Server error", details: err.message });
     }
 });
 
@@ -92,12 +119,12 @@ router.put("/:userNumber/games/:gameName", async (req, res) => {
 
     try {
         const updatedUser = await User.findOneAndUpdate(
-            { 
-                userNumber: parseInt(userNumber), 
-                "games.gameName": gameName 
+            {
+                userNumber: parseInt(userNumber),
+                "games.gameName": gameName
             },
-            { 
-                $set: { "games.$.points": points } 
+            {
+                $set: { "games.$.points": points }
             },
             { new: true }
         );
