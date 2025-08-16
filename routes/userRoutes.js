@@ -103,6 +103,16 @@ router.get("/", async (req, res) => {
     }
 });
 
+router.get("/organizers", async (req, res) => {
+    try {
+        const organizers = await User.find({ role: "organizer" }).select("-password");
+        res.json(organizers);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+
 router.get("/player", async (req, res) => {
     try {
         const users = await User.find({ role: "player" });
